@@ -41,7 +41,58 @@ uv run python -m litelitellm
 
 Runs as passthrough only (no config callbacks in this repo).
 
-**Local testing from another folder (before publishing):** From this repo run `uv tool install --editable .`. Then from any other directory you can run `litelitellm` and it will use your local code and that folder’s config. Uninstall when done: `uv tool uninstall litelitellm`.
+**Local testing (before PyPI):** From another folder you can run the GitHub version with `uvx --from git+https://github.com/elliottcarlson/litelitellm litelitellm`. For editable local dev, run `uv tool install --editable .` from this repo, then run `litelitellm` from any directory; uninstall with `uv tool uninstall litelitellm`.
+
+## Example: instruction-injection middleware
+
+Here’s a minimal project that injects an instruction so the model always responds like a pirate.
+
+**1. Project layout**
+
+```
+my_project/
+  config.yaml
+  pirate_middleware.py
+  .env          # ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**2. config.yaml**
+
+```yaml
+litellm_settings:
+  callbacks: ["pirate_middleware"]
+```
+
+**3. pirate_middleware.py**
+
+The middleware must expose an object with `async_pre_call_hook(user_api_key_dict, cache, data, call_type)`. It receives the request `data` (e.g. `model`, `messages`, `system`, `max_tokens`) and returns the modified body.
+
+```python
+class PirateMiddleware:
+    async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
+        # Inject a system instruction so the model responds like a pirate
+        prefix = "You are a pirate. Respond only in pirate speak, with 'arr' and nautical terms. "
+        existing = data.get("system")
+        if existing is None:
+            data["system"] = prefix.strip()
+        elif isinstance(existing, str):
+            data["system"] = prefix + existing
+        else:
+            # Anthropic can send system as a list of content blocks
+            data["system"] = [{"type": "text", "text": prefix}] + list(existing)
+        return data
+
+middleware = PirateMiddleware()
+```
+
+**4. Run**
+
+```bash
+cd my_project
+uvx litelitellm
+```
+
+Then point your client at `http://localhost:4000` (e.g. `ANTHROPIC_BASE_URL=http://localhost:4000`). Every request will get the pirate instruction applied before being sent to the API.
 
 ## Config
 
@@ -68,4 +119,4 @@ Config is read from the **directory you run from** (your project). This repo doe
 
 ## License
 
-Use and publish as you like.
+MIT. See [LICENSE](LICENSE).

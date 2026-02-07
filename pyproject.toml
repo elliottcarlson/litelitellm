@@ -1,8 +1,18 @@
 [project]
 name = "litelitellm"
-version = "0.1.0"
+version = "0.1.1"
 description = "Lightweight Anthropic Messages API proxy with LiteLLM-style config — load your middleware from any project"
+readme = "README.md"
 requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["litellm", "proxy", "anthropic", "middleware", "langfuse"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "fastapi>=0.100.0",
     "uvicorn>=0.20.0",

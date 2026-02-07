@@ -177,16 +177,19 @@ async def messages_endpoint(request: Request):
 
     if middleware is not None:
         try:
-            should_run, loop_ctx = await middleware.async_should_run_agentic_loop(
-                response=response_obj,
-                model=data.get("model", ""),
-                messages=data.get("messages", []),
-                tools=data.get("tools"),
-                stream=False,
-                custom_llm_provider="anthropic",
-                kwargs={},
-            )
-            if should_run:
+            if hasattr(middleware, "async_should_run_agentic_loop"):
+                should_run, loop_ctx = await middleware.async_should_run_agentic_loop(
+                    response=response_obj,
+                    model=data.get("model", ""),
+                    messages=data.get("messages", []),
+                    tools=data.get("tools"),
+                    stream=False,
+                    custom_llm_provider="anthropic",
+                    kwargs={},
+                )
+            else:
+                should_run, loop_ctx = False, {}
+            if should_run and hasattr(middleware, "async_run_agentic_loop"):
                 loop_response = await middleware.async_run_agentic_loop(
                     tools=loop_ctx,
                     model=data.get("model", ""),
