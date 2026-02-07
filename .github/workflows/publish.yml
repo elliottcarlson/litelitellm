@@ -1,0 +1,23 @@
+# Manually trigger to build and publish to PyPI.
+# Add repository secret: PYPI_API_TOKEN (pypi.org → Account → API tokens).
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Build
+        run: uv build
+
+      - name: Publish to PyPI
+        run: uv publish --non-interactive
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}

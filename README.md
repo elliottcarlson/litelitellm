@@ -117,6 +117,11 @@ Config is read from the **directory you run from** (your project). This repo doe
 - One JSON line per request to stdout (latency, tokens, etc.).
 - Optional **Langfuse:** set `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` (env or `.env`); if both are set, the proxy sends traces to Langfuse. No extra install. See [LANGFUSE.md](LANGFUSE.md) for setup with Langfuse Cloud or a self-hosted instance.
 
+## Publishing (maintainers)
+
+- **Manual:** Bump `version` in `pyproject.toml`, then run `uv build` and `uv publish` (set `UV_PUBLISH_TOKEN` or use `uv publish` and enter token when prompted).
+- **GitHub Action:** The [Publish to PyPI](.github/workflows/publish.yml) workflow is manually triggerable (Actions → Publish to PyPI → Run workflow). Add a repository secret `PYPI_API_TOKEN` with your PyPI API token (pypi.org → Account → API tokens).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
