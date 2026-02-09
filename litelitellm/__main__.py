@@ -48,14 +48,16 @@ def main() -> None:
         print()
         exit(1)
 
-    print(f"[litelitellm] Starting on port {config.LITELITELLM_PORT}")
+    from importlib.metadata import version
+    print(f"[litelitellm] version {version('litelitellm')}")
+    print(f"[litelitellm] Starting on {config.LITELITELLM_HOST}:{config.LITELITELLM_PORT}")
     print(f"[litelitellm] Anthropic API: {config.ANTHROPIC_API_URL}")
     print()
     print(f"  Set ANTHROPIC_BASE_URL=http://localhost:{config.LITELITELLM_PORT} to route traffic through this proxy")
     print()
 
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=config.LITELITELLM_PORT, log_level="info")
+    uvicorn.run(app, host=config.LITELITELLM_HOST, port=config.LITELITELLM_PORT, log_level="info")
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+LITELITELLM_HOST = os.environ.get("LITELITELLM_HOST", "0.0.0.0")
 LITELITELLM_PORT = int(os.environ.get("LITELITELLM_PORT", "4000"))
 ANTHROPIC_API_URL = os.environ.get("ANTHROPIC_API_URL", "https://api.anthropic.com")
 # Optional Langfuse (set both keys to enable tracing)

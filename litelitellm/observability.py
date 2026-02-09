@@ -127,10 +127,22 @@ def _send_langfuse(
             "input": trace_input,
             "output": trace_output,
         }
+        # Token usage: send both formats so Langfuse shows tokens and can infer cost from model
         if input_tokens is not None or output_tokens is not None:
+            inp = input_tokens if input_tokens is not None else 0
+            out = output_tokens if output_tokens is not None else 0
+            total = inp + out
+            # OpenAI-style usage in camelCase (per Langfuse IngestionUsage/OpenAiUsage)
             gen_body["usage"] = {
-                "promptTokens": input_tokens or 0,
-                "completionTokens": output_tokens or 0,
+                "promptTokens": inp,
+                "completionTokens": out,
+                "totalTokens": total,
+            }
+            # Native usageDetails (input/output/total) for Tokens and Total Cost columns
+            gen_body["usageDetails"] = {
+                "input": inp,
+                "output": out,
+                "total": total,
             }
         generation_event = {"type": "generation-create", "id": gen_event_id, "timestamp": ts, "body": gen_body}
 

@@ -41,7 +41,7 @@ uv run python -m litelitellm
 
 Runs as passthrough only (no config callbacks in this repo).
 
-**Local testing (before PyPI):** From another folder you can run the GitHub version with `uvx --from git+https://github.com/elliottcarlson/litelitellm litelitellm`. For editable local dev, run `uv tool install --editable .` from this repo, then run `litelitellm` from any directory; uninstall with `uv tool uninstall litelitellm`.
+**Local testing (before PyPI):** From another folder you can run the GitHub version with `uvx --from git+https://github.com/elliottcarlson/litelitellm litelitellm`. For **editable local dev** (use your local code when you run `litelitellm` from any folder): run `uv tool uninstall litelitellm` (removes the PyPI-installed tool), then from this repo run `uv tool install --editable .`. After that, `litelitellm` uses your local code. When done, `uv tool uninstall litelitellm` and reinstall from PyPI if you like. **Alternative:** from this repo run `uv run litelitellm` (or `uv run python -m litelitellm`) to always run local code without touching the global tool.
 
 ## Example: instruction-injection middleware
 
@@ -106,6 +106,7 @@ Config is read from the **directory you run from** (your project). This repo doe
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ANTHROPIC_API_KEY` | (none) | Used for outbound requests when middleware modifies the body. |
+| `LITELITELLM_HOST` | `0.0.0.0` | Host to bind the proxy to. |
 | `LITELITELLM_PORT` | `4000` | Port the proxy listens on. |
 | `ANTHROPIC_API_URL` | `https://api.anthropic.com` | Upstream API. |
 | `LANGFUSE_PUBLIC_KEY` | (none) | With `LANGFUSE_SECRET_KEY`, send traces to Langfuse. |

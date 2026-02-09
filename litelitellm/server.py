@@ -5,7 +5,55 @@ FastAPI server: /v1/messages proxy to Anthropic with optional middleware from co
 import json
 import traceback
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+
+def _parse_anthropic_sse_to_response(raw: bytes) -> Optional[Dict[str, Any]]:
+    """Build a single response dict from Anthropic SSE stream bytes for Langfuse."""
+    if not raw or not raw.strip():
+        return None
+    out: Dict[str, Any] = {"type": "message", "role": "assistant", "content": [], "usage": {}}
+    content_text: list[str] = []
+    try:
+        for block in raw.split(b"\n\n"):
+            block = block.strip()
+            if not block:
+                continue
+            event_type = None
+            data_str = None
+            for line in block.split(b"\n"):
+                if line.startswith(b"event:"):
+                    event_type = line[6:].strip().decode("utf-8", errors="replace")
+                elif line.startswith(b"data:"):
+                    data_str = line[5:].strip().decode("utf-8", errors="replace")
+            if not data_str or data_str == "[DONE]":
+                continue
+            try:
+                data = json.loads(data_str)
+            except json.JSONDecodeError:
+                continue
+            if event_type == "message_start":
+                msg = data.get("message", data)
+                out["id"] = msg.get("id", "")
+                out["model"] = msg.get("model", "")
+                out["role"] = msg.get("role", "assistant")
+            elif event_type == "content_block_delta":
+                delta = data.get("delta", data)
+                if isinstance(delta.get("text"), str):
+                    content_text.append(delta["text"])
+            elif event_type == "message_delta":
+                delta = data.get("delta", data)
+                if "stop_reason" in delta:
+                    out["stop_reason"] = delta["stop_reason"]
+                usage = data.get("usage", delta.get("usage"))
+                if usage:
+                    out["usage"] = dict(usage)
+        if content_text:
+            out["content"] = [{"type": "text", "text": "".join(content_text)}]
+    except Exception:
+        return None
+    return out if out.get("id") or out.get("content") or out.get("usage") else None
+
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -99,8 +147,10 @@ async def messages_endpoint(request: Request):
     if is_stream:
         async def stream_with_logging():
             err = None
+            chunks: list[bytes] = []
             try:
                 async for chunk in stream_to_anthropic(forward_data, outbound_api_key, anthropic_version, passthrough_headers, query_string):
+                    chunks.append(chunk)
                     yield chunk
                 end_time = datetime.now(timezone.utc)
                 if middleware is not None and request_id:
@@ -129,13 +179,18 @@ async def messages_endpoint(request: Request):
                 yield f"event: error\ndata: {json.dumps({'error': {'type': 'server_error', 'message': err}})}\n\n".encode()
             finally:
                 end = datetime.now(timezone.utc)
+                response_body = _parse_anthropic_sse_to_response(b"".join(chunks)) if chunks else None
+                usage = (response_body or {}).get("usage", {})
                 obs.record_request(
                     "/v1/messages",
                     data.get("model", ""),
                     (end - start_time).total_seconds(),
+                    input_tokens=usage.get("input_tokens"),
+                    output_tokens=usage.get("output_tokens"),
                     middleware_modified=middleware_modified,
                     error=err,
                     request_body=data,
+                    response_body=response_body,
                 )
 
         return StreamingResponse(stream_with_logging(), media_type="text/event-stream")
