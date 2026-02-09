@@ -1,6 +1,9 @@
 [project]
 name = "litelitellm"
-version = "0.1.2"
+version = "0.1.3"
+authors = [
+  { name="Elliott Carlson", email="x@sublim.nl" },
+]
 description = "Lightweight Anthropic Messages API proxy with LiteLLM-style config — load your middleware from any project"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -20,6 +23,10 @@ dependencies = [
     "pyyaml>=6.0",
     "python-dotenv>=1.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/elliottcarlson/litelitellm"
+Issues = "https://github.com/elliottcarlson/litelitellm/issues"
 
 [project.scripts]
 litelitellm = "litelitellm.__main__:main"
