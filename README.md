@@ -1,5 +1,9 @@
 # litelitellm
 
+<a href="https://pypi.python.org/pypi/litelitellm" target="_blank">
+  <img src="https://img.shields.io/pypi/v/litelitellm.svg" alt="PyPi">
+</a>
+
 A small, easy-to-run proxy for **LiteLLM local development**. No LiteLLM stack, no database — just a small FastAPI server that reads a **LiteLLM-style config** and loads **your project’s middleware** from the current directory using the same callbacks that LiteLLM provides. Optional **Langfuse** observability is built in.
 
 Use it when you want the same callback/middleware contract as LiteLLM without running the full proxy. Run it from any repo via **uvx**.
