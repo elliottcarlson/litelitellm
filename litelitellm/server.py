@@ -13,7 +13,9 @@ def _parse_anthropic_sse_to_response(raw: bytes) -> Optional[Dict[str, Any]]:
     if not raw or not raw.strip():
         return None
     out: Dict[str, Any] = {"type": "message", "role": "assistant", "content": [], "usage": {}}
-    content_text: list[str] = []
+    blocks: Dict[int, Dict[str, Any]] = {}
+    block_order: list[int] = []
+    partial_json: Dict[int, list[str]] = {}
     try:
         for block in raw.split(b"\n\n"):
             block = block.strip()
@@ -37,10 +39,32 @@ def _parse_anthropic_sse_to_response(raw: bytes) -> Optional[Dict[str, Any]]:
                 out["id"] = msg.get("id", "")
                 out["model"] = msg.get("model", "")
                 out["role"] = msg.get("role", "assistant")
+            elif event_type == "content_block_start":
+                index = data.get("index", 0)
+                content_block = dict(data.get("content_block", {}))
+                if index not in blocks:
+                    block_order.append(index)
+                blocks[index] = content_block
+                if content_block.get("type") == "tool_use":
+                    partial_json[index] = []
             elif event_type == "content_block_delta":
+                index = data.get("index", 0)
                 delta = data.get("delta", data)
                 if isinstance(delta.get("text"), str):
-                    content_text.append(delta["text"])
+                    block = blocks.setdefault(index, {"type": "text", "text": ""})
+                    if index not in block_order:
+                        block_order.append(index)
+                    block["text"] = block.get("text", "") + delta["text"]
+                elif isinstance(delta.get("partial_json"), str):
+                    partial_json.setdefault(index, []).append(delta["partial_json"])
+            elif event_type == "content_block_stop":
+                index = data.get("index", 0)
+                if index in partial_json and index in blocks:
+                    joined = "".join(partial_json[index])
+                    try:
+                        blocks[index]["input"] = json.loads(joined) if joined else {}
+                    except json.JSONDecodeError:
+                        blocks[index]["input"] = {}
             elif event_type == "message_delta":
                 delta = data.get("delta", data)
                 if "stop_reason" in delta:
@@ -48,8 +72,8 @@ def _parse_anthropic_sse_to_response(raw: bytes) -> Optional[Dict[str, Any]]:
                 usage = data.get("usage", delta.get("usage"))
                 if usage:
                     out["usage"] = dict(usage)
-        if content_text:
-            out["content"] = [{"type": "text", "text": "".join(content_text)}]
+        if block_order:
+            out["content"] = [blocks[i] for i in block_order if i in blocks]
     except Exception:
         return None
     return out if out.get("id") or out.get("content") or out.get("usage") else None
